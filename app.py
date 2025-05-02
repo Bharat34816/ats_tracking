@@ -27,8 +27,7 @@ def get_gemini_response(prompt, resume_text, job_desc):
     try:
         response = model.generate_content(
             [job_desc, resume_text, prompt],
-            generation_config={"max_output_tokens": 1024},
-            timeout=60
+            generation_config={"max_output_tokens": 1024}
         )
         return response.text
     except Exception as e:
