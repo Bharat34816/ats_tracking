@@ -17,11 +17,11 @@ def input_pdf_text(uploaded_file):
         text += page.extract_text() or ""
     return text
 
-# Truncate text to avoid timeout
+# Truncate input text to avoid overly large prompts
 def truncate_text(text, max_chars=12000):
     return text[:max_chars]
 
-# Call Gemini Flash with timeout and config
+# Call Gemini Flash (no timeout logic)
 def get_gemini_response(prompt, resume_text, job_desc):
     model = genai.GenerativeModel("gemini-1.5-flash")
     try:
