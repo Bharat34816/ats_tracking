@@ -17,11 +17,22 @@ def input_pdf_text(uploaded_file):
         text += page.extract_text() or ""
     return text
 
-# Call Gemini Flash
+# Truncate text to avoid timeout
+def truncate_text(text, max_chars=12000):
+    return text[:max_chars]
+
+# Call Gemini Flash with timeout and config
 def get_gemini_response(prompt, resume_text, job_desc):
     model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content([job_desc, resume_text, prompt])
-    return response.text
+    try:
+        response = model.generate_content(
+            [job_desc, resume_text, prompt],
+            generation_config={"max_output_tokens": 1024},
+            timeout=60
+        )
+        return response.text
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
 
 # Streamlit UI
 st.set_page_config(page_title="ATS Resume Expert")
@@ -61,29 +72,27 @@ First, output the percentage, then list the missing keywords, and finally provid
 """
 
 # Button Logic
-if submit1:
-    if uploaded_file:
-        resume_text = input_pdf_text(uploaded_file)
-        response = get_gemini_response(input_prompt1, resume_text, input_text)
-        st.subheader("📋 Resume Evaluation:")
-        st.write(response)
-    else:
-        st.warning("Please upload the resume.")
+if uploaded_file and input_text:
+    resume_text = truncate_text(input_pdf_text(uploaded_file))
+    job_desc = truncate_text(input_text)
 
-elif submit2:
-    if uploaded_file:
-        resume_text = input_pdf_text(uploaded_file)
-        response = get_gemini_response(input_prompt2, resume_text, input_text)
-        st.subheader("📌 Missing Keywords:")
-        st.write(response)
-    else:
-        st.warning("Please upload the resume.")
+    if submit1:
+        with st.spinner("Analyzing resume..."):
+            response = get_gemini_response(input_prompt1, resume_text, job_desc)
+            st.subheader("📋 Resume Evaluation:")
+            st.write(response)
 
-elif submit3:
-    if uploaded_file:
-        resume_text = input_pdf_text(uploaded_file)
-        response = get_gemini_response(input_prompt3, resume_text, input_text)
-        st.subheader("📊 ATS Match Report:")
-        st.write(response)
-    else:
-        st.warning("Please upload the resume.")
+    elif submit2:
+        with st.spinner("Checking missing keywords..."):
+            response = get_gemini_response(input_prompt2, resume_text, job_desc)
+            st.subheader("📌 Missing Keywords:")
+            st.write(response)
+
+    elif submit3:
+        with st.spinner("Calculating match percentage..."):
+            response = get_gemini_response(input_prompt3, resume_text, job_desc)
+            st.subheader("📊 ATS Match Report:")
+            st.write(response)
+else:
+    if submit1 or submit2 or submit3:
+        st.warning("Please upload a resume and enter a job description.")
